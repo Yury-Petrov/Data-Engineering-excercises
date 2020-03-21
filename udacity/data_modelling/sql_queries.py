@@ -1,21 +1,21 @@
 # DROP TABLES
 
-songplay_table_drop = "drop table if exists songplays;"
-user_table_drop = "drop table if exists users"
-song_table_drop = "drop table if exists songs"
-artist_table_drop = "drop table if exists artists"
-time_table_drop = "drop table if exists time"
+songplay_table_drop = "DROP TABLE IF EXISTS songplays;"
+user_table_drop = "DROP TABLE IF EXISTS users"
+song_table_drop = "DROP TABLE IF EXISTS songs"
+artist_table_drop = "DROP TABLE IF EXISTS artists"
+time_table_drop = "DROP TABLE IF EXISTS time"
 
 # CREATE TABLES
 
 songplay_table_create = ("""
-create table if not exists Songplays(
-    songplay_id serial primary key,
+CREATE TABLE IF NOT EXISTS Songplays(
+    songplay_id serial PRIMARY KEY,
     start_time bigint,
-    user_id int not null,
+    user_id int,
     level text,
-    song_id text not null,
-    artist_id text not null,
+    song_id text,
+    artist_id text,
     session_id int,
     location text,
     user_agent text
@@ -23,8 +23,8 @@ create table if not exists Songplays(
 """)
 
 user_table_create = ("""
-create table if not exists Users(
-    user_id int primary key,
+CREATE TABLE IF NOT EXISTS Users(
+    user_id int PRIMARY KEY,
     first_name text,
     last_name text,
     gender text,
@@ -33,8 +33,8 @@ create table if not exists Users(
 """)
 
 song_table_create = ("""
-create table if not exists Songs(
-    song_id text primary key,
+CREATE TABLE IF NOT EXISTS Songs(
+    song_id text PRIMARY KEY,
     title text,
     artist_id text,
     year int,
@@ -43,8 +43,8 @@ create table if not exists Songs(
 """)
 
 artist_table_create = ("""
-create table if not exists Artists(
-    artist_id text primary key,
+CREATE TABLE IF NOT EXISTS Artists(
+    artist_id text PRIMARY KEY,
     name text,
     location text,
     latitude float,
@@ -53,8 +53,8 @@ create table if not exists Artists(
 """)
 
 time_table_create = ("""
-create table if not exists Time(
-    start_time bigint primary key,
+CREATE TABLE IF NOT EXISTS Time(
+    start_time bigint PRIMARY KEY,
     hour bigint,
     day bigint,
     week bigint,
@@ -67,7 +67,7 @@ create table if not exists Time(
 # INSERT RECORDS
 
 songplay_table_insert = ("""
-insert into Songplays(
+INSERT INTO Songplays(
     start_time,
     user_id,
     level,
@@ -76,7 +76,7 @@ insert into Songplays(
     session_id,
     location,
     user_agent)
-values(
+VALUES(
     %(startTime)s,
     %(userId)s,
     %(level)s,
@@ -88,56 +88,56 @@ values(
 """)
 
 user_table_insert = ("""
-insert into Users(user_id,
+INSERT INTO Users(user_id,
     first_name,
     last_name,
     gender,
     level)
-values(
+VALUES(
     %(userId)s,
     %(firstName)s,
     %(lastName)s,
     %(gender)s,
     %(level)s)
-on conflict(user_id)
-do update
-set first_name = %(firstName)s,
+ON CONFLICT(user_id)
+DO UPDATE
+SET first_name = %(firstName)s,
     last_name  = %(lastName)s,
     gender     = %(gender)s,
     level      = %(level)s
 """)
 
 song_table_insert = ("""
-insert into Songs(song_id,
+INSERT INTO Songs(song_id,
     title,
     artist_id,
     year,
     duration)
-values(
-%(song_id)s,
+VALUES(
+%(songId)s,
 %(title)s,
-%(artist_id)s,
+%(artistId)s,
 %(year)s,
 %(duration)s)
-on conflict (song_id)
+ON CONFLICT (song_id)
 do nothing
 """)
 
 artist_table_insert = ("""
-insert into Artists(artist_id,
+INSERT INTO Artists(artist_id,
     name,
     location,
     latitude,
     longitude)
-values(
+VALUES(
 %(artistId)s,
 %(name)s,
 %(location)s,
 %(latitude)s,
 %(longitude)s)
-on conflict(artist_id)
-do update
-set name = %(name)s,
+ON CONFLICT(artist_id)
+DO UPDATE
+SET name = %(name)s,
     location  = %(location)s,
     latitude  = %(latitude)s,
     longitude = %(longitude)s
@@ -145,14 +145,14 @@ set name = %(name)s,
 
 
 time_table_insert = ("""
-insert into Time(start_time,
+INSERT INTO Time(start_time,
     hour,
     day,
     week,
     month,
     year,
     weekday)
-values(
+VALUES(
 %(startTime)s,
 %(hour)s,
 %(day)s,
@@ -161,19 +161,19 @@ values(
 %(year)s,
 %(weekday)s
 )
-on conflict(start_time)
+ON CONFLICT(start_time)
 do nothing
 """)
 
 # FIND SONGS
 
 song_select = ("""
-    select s.song_id, a.artist_id
-    from songs as s inner join artists as a
-    on s.artist_id = a.artist_id
-    where s.title = %(title)s
-        and a.name = %(artistName)s
-        and s.duration = %(duration)s
+    SELECT s.song_id, a.artist_id
+    FROM songs AS s INNER JOIN artists AS a
+    ON s.artist_id = a.artist_id
+    WHERE s.title = %(title)s
+        AND a.name = %(artistName)s
+        AND s.duration = %(duration)s
 """)
 
 # QUERY LISTS

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>DATABASE</ID>
+  <OriginalElement>0fdd9629-fe5a-45c7-9662-c6d7a38503b6.SCHEMA:sparkifydb.public</OriginalElement>
+  <nodes>
+    <node x="228.0" y="32.0">0fdd9629-fe5a-45c7-9662-c6d7a38503b6.TABLE:sparkifydb.public.artists</node>
+    <node x="-221.0" y="20.0">0fdd9629-fe5a-45c7-9662-c6d7a38503b6.TABLE:sparkifydb.public.time</node>
+    <node x="0.0" y="0.0">0fdd9629-fe5a-45c7-9662-c6d7a38503b6.TABLE:sparkifydb.public.songplays</node>
+    <node x="261.0" y="316.0">0fdd9629-fe5a-45c7-9662-c6d7a38503b6.TABLE:sparkifydb.public.users</node>
+    <node x="-242.0" y="326.0">0fdd9629-fe5a-45c7-9662-c6d7a38503b6.TABLE:sparkifydb.public.songs</node>
+  </nodes>
+  <notes />
+  <edges />
+  <settings layout="Hierarchic Group" zoom="1.0" x="264.0" y="227.5" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Key columns</Category>
+    <Category>Columns</Category>
+    <Category>Virtual foreign keys</Category>
+  </Categories>
+</Diagram>
+
