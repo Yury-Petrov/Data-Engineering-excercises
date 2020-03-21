@@ -13,6 +13,12 @@ from sql_queries import *
 
 
 def process_songs(cur, df):
+    """
+    Processing dataframe to populate songs table
+    :param cur: cursor to execute against
+    :param df: dataframe to process
+    :return:
+    """
     # Transform the data and prepare for insertion
     song_column_name_mapping = {
         'song_id': 'songId',
@@ -31,6 +37,12 @@ def process_songs(cur, df):
 
 
 def process_artists(cur, df):
+    """
+    Processing dataframe to populate artists table
+    :param cur: cursor to execute against
+    :param df: dataframe to process
+    :return:
+    """
     process_songs(cur=cur, df=df)
     artist_column_name_mapping = {
         'artist_id': 'artistId',
@@ -52,6 +64,12 @@ def process_artists(cur, df):
 ########################################################################################################################
 
 def process_time(cur, df):
+    """
+    Processing dataframe to populate time table
+    :param cur: cursor to execute against
+    :param df: dataframe to process
+    :return:
+    """
     # filter by NextSong action
     df = df.loc[df['page'] == 'NextSong']
 
@@ -73,6 +91,12 @@ def process_time(cur, df):
 
 
 def process_users(cur, df):
+    """
+    Processing dataframe to populate users table
+    :param cur: cursor to execute against
+    :param df: dataframe to process
+    :return:
+    """
     # filter by NextSong action
     df = df.loc[df['page'] == 'NextSong']
     # load user table
@@ -87,6 +111,12 @@ def process_users(cur, df):
 
 
 def process_songplays(cur, df):
+    """
+    Processing dataframe to populate songplays table
+    :param cur: cursor to execute against
+    :param df: dataframe to process
+    :return:
+    """
     # filter by NextSong action
     df = df.loc[df['page'] == 'NextSong']
     # # insert songplay records
@@ -157,17 +187,28 @@ def process_data(cur, conn, filepath, funcs):
 
 
 def main():
+    """
+    Main function to run the project
+    :return:
+    """
     conn = psycopg2.connect("host=127.0.0.1 dbname=sparkifydb user=student password=student")
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
 
-    song_data_file_path = 'data/song_data'
-    print(f"Processing file path:{song_data_file_path}")
-    process_data(cur, conn, filepath=song_data_file_path, funcs=[process_songs, process_artists])
-    log_data_file_path = 'data/log_data'
+        song_data_file_path = 'data/song_data'
+        print(f"Processing file path:{song_data_file_path}")
+        process_data(cur, conn, filepath=song_data_file_path, funcs=[process_songs, process_artists])
+        log_data_file_path = 'data/log_data'
 
-    print(f"Processing file path:{log_data_file_path}")
-    process_data(cur, conn, filepath=log_data_file_path, funcs=[process_time, process_users, process_songplays])
-    conn.close()
+        print(f"Processing file path:{log_data_file_path}")
+        process_data(cur, conn, filepath=log_data_file_path, funcs=[process_time, process_users, process_songplays])
+
+    except Exception as e:
+        print("Something terrible happened" + str(e))
+        raise
+
+    finally:
+        conn.close()
 
     print("ETL job complete")
 
