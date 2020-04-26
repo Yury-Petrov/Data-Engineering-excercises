@@ -12,6 +12,9 @@ from botocore.exceptions import ClientError
 
 
 class InfrastructureManager:
+    """
+    This class is provides functionality for infrastructure creation operations required to set up a Redshift cluster.
+    """
     def __init__(self, aws_config: SectionProxy, dwh_config: SectionProxy):
         KEY = aws_config.get('KEY')
         SECRET = aws_config.get('SECRET')
@@ -44,12 +47,28 @@ class InfrastructureManager:
         self.__redshift_cluster_acceptable_statuses = ['available']
 
     def create_infrastructure(self):
+        """
+        This function runs several methods required to create infrastructure for Redshift cluster.
+        The steps include:
+        1. Create iam role for redshift.
+        2. Attach s3 readonly policy to the role in step 1.
+        3. Create redshift cluster with the role created in step 1.
+
+        Please note that configuration that drives the infrastructure creation process should be provided in dwh.cfg
+        """
         self.__create_iam_role(role_name=self.dwh_config.get('DWH_IAM_ROLE_NAME'))
         role_arn = self.__attach_s3_policy(role_name=self.dwh_config.get('DWH_IAM_ROLE_NAME'))
         self.__create_redshift_cluster(roleArns=[role_arn])
         self.__allow_ingress()
 
     def destroy_infrastructure(self):
+        """
+        This functions runs through several methods to destroy the infrastructure for redshift cluster.
+        1. The cluster deletion request is sent.
+        2. The policy is detached from the role.
+        3. The role is deleted.
+        """
+
         print(f"submitting request to to delete culster {self.dwh_config.get('DWH_CLUSTER_IDENTIFIER')}")
         self.__redshift.delete_cluster(ClusterIdentifier=self.dwh_config.get('DWH_CLUSTER_IDENTIFIER'),
                                        SkipFinalClusterSnapshot=True)
@@ -65,10 +84,14 @@ class InfrastructureManager:
     #                                                                                                                  #
     ####################################################################################################################
 
-    def __create_iam_role(self, role_name: str) -> object:
+    def __create_iam_role(self, role_name: str):
+        """
+        This function creates a new iam role for redshift cluster
+        :param role_name: name of the role
+        """
         print(f'Creating iam role {role_name}')
         try:
-            return self.__iam.create_role(
+            self.__iam.create_role(
                 Path='/',
                 RoleName=role_name,
                 Description="Allows Redshift clusters to call AWS services on your behalf.",
@@ -95,6 +118,11 @@ class InfrastructureManager:
             raise
 
     def __attach_s3_policy(self, role_name: str) -> str:
+        """
+        The function attaches the s3 readonly policy ti the provided role
+        :param role_name: name of the role to attach the policy to.
+        :return: role arn.
+        """
         print(f'Attaching s3 readonly policy to role {role_name} ')
         policy_attach_response = self.__iam.attach_role_policy(
             RoleName=role_name,
@@ -103,7 +131,10 @@ class InfrastructureManager:
         return self.__iam.get_role(RoleName=role_name)['Role']['Arn']
 
     def __create_redshift_cluster(self, roleArns: List[str]):
-
+        """
+        The function creates a new redshift cluster based on the configs provided in the class constructor.
+        :param roleArns: arns for the roles that need to be passed to the cluster.
+        """
         print('Creating Redshift cluster. It might take some time. Timeout: 10 minutes')
         try:
             self.__redshift.create_cluster(
@@ -128,6 +159,11 @@ class InfrastructureManager:
             raise
 
     def __wait_for_redshift_cluster_creation(self):
+        """
+        The function makes sure that the redshift cluster is created by sending requests to aws and waiting for an
+        acceptable status to be returned for the cluster. The request is sent with a certain configured interval
+        (default is 60 sec) and has a timeout (default is 10 minutes)
+        """
         cluster_creation_checks = 0
         print('Waiting for cluster to be created')
         while True:
@@ -155,6 +191,10 @@ class InfrastructureManager:
                 return
 
     def __allow_ingress(self):
+        """
+        The function creates a new ingress rule for the default security group to allow inbound connections to the
+        redshift cluster.
+        """
         try:
             cluster_vpc_id = self.__redshift.describe_clusters(
                 ClusterIdentifier=self.dwh_config.get('DWH_CLUSTER_IDENTIFIER'))['Clusters'][0]['VpcId']
@@ -163,7 +203,7 @@ class InfrastructureManager:
             default_sg = list(vpc.security_groups.all())[0]
 
             default_sg.authorize_ingress(
-                GroupName='whatever',
+                GroupName='default',
                 CidrIp='0.0.0.0/0',
                 IpProtocol='TCP',
                 FromPort=int(self.dwh_config.get('DWH_PORT')),
@@ -178,6 +218,9 @@ class InfrastructureManager:
 
 
 def main():
+    """
+    The main method to run in order to create Redshift cluster infrastructure.
+    """
     print('Creating infrastructure')
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
