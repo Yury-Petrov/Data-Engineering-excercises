@@ -1,10 +1,12 @@
 import configparser
 import json
+
 from configparser import SectionProxy
+
 from typing import List
 
-import boto3
 import time
+import boto3
 
 from botocore.exceptions import ClientError
 
@@ -104,7 +106,7 @@ class InfrastructureManager:
 
         print('Creating Redshift cluster. It might take some time. Timeout: 10 minutes')
         try:
-            result = self.__redshift.create_cluster(
+            self.__redshift.create_cluster(
                 # adding parameters for hardware
                 ClusterType=self.dwh_config.get('DWH_CLUSTER_TYPE'),
                 Port=int(self.dwh_config.get('DWH_PORT')),
@@ -158,11 +160,10 @@ class InfrastructureManager:
                 ClusterIdentifier=self.dwh_config.get('DWH_CLUSTER_IDENTIFIER'))['Clusters'][0]['VpcId']
 
             vpc = self.__ec2.Vpc(id=cluster_vpc_id)
-            defaultSg = list(vpc.security_groups.all())[0]
-            print(defaultSg)
+            default_sg = list(vpc.security_groups.all())[0]
 
-            defaultSg.authorize_ingress(
-                GroupName='default',
+            default_sg.authorize_ingress(
+                GroupName='whatever',
                 CidrIp='0.0.0.0/0',
                 IpProtocol='TCP',
                 FromPort=int(self.dwh_config.get('DWH_PORT')),
@@ -183,6 +184,7 @@ def main():
     infra_manager = InfrastructureManager(aws_config=config['AWS'], dwh_config=config['DWH'])
     infra_manager.create_infrastructure()
     print('Infrastructure created')
+
 
 if __name__ == '__main__':
     main()

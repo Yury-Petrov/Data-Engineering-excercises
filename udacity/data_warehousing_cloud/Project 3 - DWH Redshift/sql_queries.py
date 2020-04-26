@@ -12,6 +12,7 @@ logs_json_format = config.get("S3", "LOG_JSONPATH")
 songs_json_format = 'auto'
 aws_region = config.get("S3", "REGION")
 iam_role = config.get("IAM_ROLE", "ARN")
+# iam_role = config.get("DWH", "DWH_IAM_ROLE_NAME")
 
 # DROP TABLES
 
@@ -131,34 +132,138 @@ CREATE TABLE time(
 # STAGING TABLES
 
 staging_events_copy = f"""
-copy staging_events from {log_data_location} 
+COPY staging_events FROM {log_data_location} 
 credentials 'aws_iam_role={iam_role}'
 region {aws_region}
-format as json {logs_json_format}
+FORMAT AS json {logs_json_format}
 """
 
 staging_songs_copy = f"""
-copy staging_songs from {song_data_location}
+COPY staging_songs FROM {song_data_location}
 credentials 'aws_iam_role={iam_role}'
 region {aws_region}
-format as json '{songs_json_format}'
+FORMAT AS json '{songs_json_format}'
 """
 
 # FINAL TABLES
 
 songplay_table_insert = ("""
+DELETE FROM songplay
+USING staging_events AS se
+         JOIN staging_songs AS ss
+              ON se.artist = ss.artist_name
+                  and se.song = ss.title
+WHERE songplay.song_id = ss.song_id
+AND songplay.user_id = userid
+AND songplay.artist_id = ss.artist_id
+AND songplay.start_time = se.ts
+AND songplay.session_id = se.sessionid;
+
+INSERT INTO songplay (
+    start_time,
+    user_id,
+    level,
+    song_id,
+    artist_id, 
+    session_id,
+    location,  
+    user_agent
+)
+SELECT distinct ts           AS start_time,
+                se.userId    AS user_id,
+                se.level     AS level,
+                ss.song_id   AS song_id,
+                ss.artist_id AS artist_id,
+                se.sessionId AS session_id,
+                se.location  AS location,
+                se.userAgent AS user_agent
+FROM staging_events AS se
+         JOIN staging_songs AS ss
+              ON se.artist = ss.artist_name
+                  and se.song = ss.title
+WHERE se.page = 'NextSong';
 """)
 
 user_table_insert = ("""
+DELETE FROM user_data
+USING staging_events AS ss
+WHERE user_data.user_id = ss.userid;
+
+INSERT INTO user_data (user_id,
+                       first_name,
+                       last_name,
+                       gender,
+                       level)
+SELECT DISTINCT userId    AS user_id,
+                firstName AS first_name,
+                lastName  AS last_name,
+                gender,
+                level
+FROM staging_events
+WHERE page = 'NextSong';
 """)
 
 song_table_insert = ("""
+DELETE FROM song
+USING staging_songs AS ss
+WHERE song.song_id = SS.song_id;
+
+INSERT INTO song(song_id,
+                 title,
+                 artist_id,
+                 year,
+                 duration)
+SELECT DISTINCT song_id   AS song_id,
+                title,
+                artist_id AS artist_id,
+                year,
+                duration
+FROM staging_songs;
 """)
 
 artist_table_insert = ("""
+DELETE FROM artist
+USING staging_songs    AS ss
+WHERE artist.artist_id = ss.artist_id;
+
+INSERT INTO artist(artist_id,
+                   name,
+                   location,
+                   latitude,
+                   longitude)
+SELECT DISTINCT artist_id        AS artist_id,
+                artist_name,
+                artist_location  AS location,
+                artist_latitude  AS latitude,
+                artist_longitude AS longitude
+FROM staging_songs;
 """)
 
 time_table_insert = ("""
+DELETE FROM time
+USING staging_events
+    WHERE start_time = ts;
+
+INSERT INTO time (start_time,
+                  hour,
+                  day,
+                  week,
+                  month,
+                  year,
+                  weekday)
+with converted_ts as (
+    select distinct ts                                                  as start_time,
+                    TIMESTAMP 'epoch' + ts / 1000 * INTERVAL '1 second' as ts_for_extraction
+    from staging_events)
+
+select start_time,
+       EXTRACT(hour FROM ts_for_extraction)  AS hour,
+       EXTRACT(day FROM ts_for_extraction)   AS day,
+       EXTRACT(week FROM ts_for_extraction)  AS week,
+       EXTRACT(month FROM ts_for_extraction) AS month,
+       EXTRACT(year FROM ts_for_extraction)  AS year,
+       EXTRACT(week FROM ts_for_extraction)  AS weekday
+from converted_ts;
 """)
 
 # QUERY LISTS
