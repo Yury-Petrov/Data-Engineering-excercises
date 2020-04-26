@@ -5,6 +5,15 @@ import boto3
 
 
 def get_redshift_cluster_description(region: str, key: str, secret: str, cluster_identifier: str) -> Dict:
+    """
+    Convenience method to get description of the redshift cluster
+    :param region: region where the cl;uster is created
+    :param key: aws credentials key
+    :param secret: aws credentials secret
+    :param cluster_identifier: cluster name
+    :return: cluster description as per
+    https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/redshift.html#Redshift.Client.describe_clusters
+    """
     redshift = boto3.client(
         'redshift',
         region_name=region,
@@ -16,6 +25,12 @@ def get_redshift_cluster_description(region: str, key: str, secret: str, cluster
 
 
 def get_redshift_connection_string(config: ConfigParser) -> str:
+    """
+    Convenience method to get redhsift address and port as a part of the endpoint section of the cluster description and
+    then generate a db connection string from it and the config (dwh.cfg)
+    :param config: config with parameters for the cluster
+    :return: connection string to use to get connected to the redshift cluster.
+    """
     KEY = config.get("AWS", "KEY")
     SECRET = config.get("AWS", "SECRET")
     REGION = config.get("DWH", "DWH_REGION")
