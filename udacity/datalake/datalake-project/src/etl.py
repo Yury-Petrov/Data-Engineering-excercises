@@ -13,7 +13,6 @@ config.read_file(open('dl.cfg'))
 os.environ['AWS_ACCESS_KEY_ID'] = config['AWS']['AWS_ACCESS_KEY_ID']
 os.environ['AWS_SECRET_ACCESS_KEY'] = config['AWS']['AWS_SECRET_ACCESS_KEY']
 input_location_cfg = config['AWS']['INPUT_LOCATION']
-input_location_cfg = config['AWS']['INPUT_LOCATION']
 output_location_cfg = config['AWS']['OUTPUT_LOCATION']
 
 def create_spark_session():
