@@ -12,7 +12,9 @@ config.read_file(open('dl.cfg'))
 
 os.environ['AWS_ACCESS_KEY_ID'] = config['AWS']['AWS_ACCESS_KEY_ID']
 os.environ['AWS_SECRET_ACCESS_KEY'] = config['AWS']['AWS_SECRET_ACCESS_KEY']
-
+input_location_cfg = config['AWS']['INPUT_LOCATION']
+input_location_cfg = config['AWS']['INPUT_LOCATION']
+output_location_cfg = config['AWS']['OUTPUT_LOCATION']
 
 def create_spark_session():
     spark = SparkSession \
@@ -125,8 +127,10 @@ def process_log_data(spark, input_data, output_data):
         .parquet(f"{output_data}/users_table")
 
     # create timestamp column from original timestamp column
-    log_with_time_df = log_df.withColumn('ts', col('ts') / 1000).select(col('ts').cast(IntegerType())) \
-        .dropDuplicates().withColumnRenamed('ts', 'start_time')
+    log_with_time_df = log_df \
+        .withColumn('start_time',
+                    (col('ts') / 1000).cast(IntegerType())) \
+        .dropDuplicates()
     log_with_time_df = log_with_time_df \
         .withColumn('ts_as_datetime', from_unixtime(col('start_time'), 'yyyy-MM-dd HH:mm:ss').cast(TimestampType())) \
         .withColumn('hour', hour(col('ts_as_datetime'))) \
@@ -145,27 +149,25 @@ def process_log_data(spark, input_data, output_data):
 
     # read in song data to use for songplays table
     song_df = read_song_data(spark, input_data)
+    song_df = song_df.drop('year')
 
+    uuidUdf = udf(lambda: str(uuid.uuid4()), StringType())
     # extract columns from joined song and log datasets to create songplays table
     songplays_table = log_with_time_df \
         .join(song_df, song_df.title == log_df.song) \
         .select(
-            col('ts').alias('start_time'),
+            uuidUdf().alias('songplay_id'),
+            col('start_time').alias('start_time'),
             col('userId').alias('user_id'),
             col('level').alias('level'),
             col('song_id').alias('song_id'),
             col('artist_id').alias('artist_id'),
-            col('ssessionId').alias('session_id'),
+            col('sessionId').alias('session_id'),
             col('location').alias('location'),
-            col('userAgent').alias('user_agent'),
-            col('year').alias('user_agent'),
             col('userAgent').alias('user_agent'),
             col('year').alias('year'),
             col('month').alias('month'),
         )
-
-    uuidUdf = udf(lambda: str(uuid.uuid4()), StringType())
-    songplays_table = songplays_table.withColumn("songplay_id", uuidUdf())
 
 # write songplays table to parquet files partitioned by year and month
     songplays_table \
@@ -175,9 +177,12 @@ def process_log_data(spark, input_data, output_data):
         .parquet(f"{output_data}/songplays_table")
 
 def main():
+    """
+    The main funcion to run for ETL
+    """
     spark = create_spark_session()
-    input_data = "s3a://udacity-dend/"
-    output_data = "s3a://yury-petrov-udacity-dend-datalake"
+    input_data = input_location_cfg
+    output_data = output_location_cfg
 
     process_song_data(spark, input_data, output_data)
     process_log_data(spark, input_data, output_data)
