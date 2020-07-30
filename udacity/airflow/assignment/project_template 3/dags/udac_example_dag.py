@@ -11,7 +11,12 @@ from helpers import SqlQueries
 
 default_args = {
     'owner': 'udacity',
-    'start_date': datetime(2019, 1, 12),
+    'start_date': datetime(2020, 7, 29),
+    'depends_on_past': False,
+    'retires': 3,
+    'retry_delay':timedelta(minutes=5),
+    'catchup': False,
+    'email_on_retry': False
 }
 
 dag = DAG('udac_example_dag',
@@ -24,14 +29,27 @@ start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
 
 stage_events_to_redshift = StageToRedshiftOperator(
     task_id='Stage_events',
-    dag=dag
+    provide_context=False,
+    dag=dag,
+    target_table="staging_events",
+    s3_bucket="udacity-dend",
+    s3_key="log_data",
+    redshift_conn_id="redshift",
+    aws_conn_id="aws_credentials",
+    region="us-west-2"
 )
 
 stage_songs_to_redshift = StageToRedshiftOperator(
     task_id='Stage_songs',
-    dag=dag
+    provide_context=False,
+    dag=dag,
+    target_table = "staging_songs",
+    s3_bucket="udacity-dend",
+    s3_key = "song_data",
+    redshift_conn_id="redshift",
+    aws_conn_id="aws_credentials",
+    region="us-west-2"
 )
-
 load_songplays_table = LoadFactOperator(
     task_id='Load_songplays_fact_table',
     dag=dag
@@ -63,3 +81,6 @@ run_quality_checks = DataQualityOperator(
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
+
+start_operator >> stage_events_to_redshift >> end_operator
+start_operator >> stage_songs_to_redshift >> end_operator
