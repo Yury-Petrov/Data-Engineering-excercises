@@ -9,12 +9,13 @@ class StageToRedshiftOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 redshift_conn_id="",
-                 aws_conn_id="",
-                 target_table="",
-                 s3_bucket="",
-                 s3_key="",
+                 redshift_conn_id,
+                 aws_conn_id,
+                 target_table,
+                 s3_bucket,
+                 s3_key,
                  region="us-west-2",
+                 log_json_path='auto',
                  *args, **kwargs):
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
 
@@ -24,6 +25,7 @@ class StageToRedshiftOperator(BaseOperator):
         self.__s3_bucket = s3_bucket
         self.__s3_key = s3_key
         self.__region = region
+        self.__log_json_path = log_json_path
         self.__execution_date = kwargs.get("execution_datetime")
 
     def execute(self, context):
@@ -31,7 +33,7 @@ class StageToRedshiftOperator(BaseOperator):
 
         redshift = PostgresHook(postgres_conn_id=self.__redshift_conn_id)
         self.log.info("Clearing data from the target Redshift table")
-        redshift.run("DELETE FROM {}".format(self.__target_table))
+        redshift.run(f"TRUNCATE TABLE  {self.__target_table}")
         self.log.info("Copying data from S3 to Redshift")
 
         aws_hook = AwsHook(self.__aws_conn_id)
@@ -59,5 +61,5 @@ class StageToRedshiftOperator(BaseOperator):
         ACCESS_KEY_ID '{access_key}'
         SECRET_ACCESS_KEY '{secret_key}'
         REGION '{self.__region}'
-        json 'auto'
+        json '{self.__log_json_path}'
     """
